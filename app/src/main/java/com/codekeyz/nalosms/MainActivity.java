@@ -1,9 +1,8 @@
 package com.codekeyz.nalosms;
 
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 
-import com.nalo.nalosms.NaloMessage;
 import com.nalo.nalosms.NaloSMS;
 
 public class MainActivity extends AppCompatActivity {
@@ -13,15 +12,25 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        NaloSMS nalosms = new NaloMessage.Builder()
-                .withUsernameAndPassword("", "")
+        NaloSMS nalosms = new NaloSMS.Builder(this)
+                .withAuth("", "")
+                .setType(NaloSMS.Type.FLASH_MESSAGE_ISO_88559_1)
                 .setMessage("")
                 .setSource("")
-                .setType(1)
                 .withDeliveryReport(true)
                 .build();
 
-        nalosms.send();
+        nalosms.send(new NaloSMS.Callback() {
+            @Override
+            public void onResult() {
+
+            }
+
+            @Override
+            public void onError(String error) {
+
+            }
+        });
     }
 
 }
