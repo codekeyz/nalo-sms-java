@@ -1,20 +1,51 @@
 package com.nalo.nalosms;
 
-import android.content.Context;
 import android.support.annotation.NonNull;
+import android.text.TextUtils;
+
+import retrofit2.Call;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.scalars.ScalarsConverterFactory;
 
 public class NaloSMS {
 
-    private static final String SMS_BASE_URL = "https://api.nalosolutions.com/bulksms/?";
+    private static final String SMS_BASE_URL = "https://api.nalosolutions.com/";
     private final NaloMessage naloMessage;
+    private NaloSMSService smsService;
+    private static Retrofit retrofit;
 
 
     private NaloSMS(@NonNull NaloMessage naloMessage) {
         this.naloMessage = naloMessage;
+        if (retrofit == null) {
+            retrofit = new Retrofit.Builder()
+                    .baseUrl(SMS_BASE_URL)
+                    .addConverterFactory(ScalarsConverterFactory.create())
+                    .build();
+        }
+        this.smsService = retrofit.create(NaloSMSService.class);
     }
 
-    public void send(Callback callback) {
+    public void send(@NonNull final Callback callback) {
+        this.smsService.sendSMS(
+                this.naloMessage.username,
+                this.naloMessage.password,
+                this.naloMessage.source,
+                this.naloMessage.message,
+                this.naloMessage.destination,
+                this.naloMessage.type,
+                this.naloMessage.dlr).enqueue(new retrofit2.Callback<String>() {
+            @Override
+            public void onResponse(Call<String> call, Response<String> response) {
+                callback.onResult(response.body());
+            }
 
+            @Override
+            public void onFailure(Call<String> call, Throwable t) {
+                callback.onError(t);
+            }
+        });
     }
 
     public enum Type {
@@ -41,60 +72,58 @@ public class NaloSMS {
     }
 
     public interface Callback {
-        void onResult();
+        void onResult(String result);
 
-        void onError(String error);
+        void onError(Throwable error);
     }
 
-    public static class Builder {
-        private Context context;
+    public static class SMSBuilder {
         private NaloMessage naloMessage;
 
-        public Builder(@NonNull Context context) {
-            this.context = context;
+        public SMSBuilder() {
             this.naloMessage = new NaloMessage();
         }
 
         @NonNull
-        public Builder withAuth(String username, String password) {
+        public SMSBuilder withAuthCred(String username, String password) {
             this.naloMessage.username = username;
             this.naloMessage.password = password;
             return this;
         }
 
         @NonNull
-        public Builder setMessage(String message) {
+        public SMSBuilder setMessage(String message) {
             this.naloMessage.message = message;
             return this;
         }
 
         @NonNull
-        public Builder setDestination(String... destination) {
-            this.naloMessage.destination = destination;
+        public SMSBuilder setDestination(String... destination) {
+            this.naloMessage.destination = TextUtils.join(",", destination);
             return this;
         }
 
         @NonNull
-        public Builder setSource(String source) {
+        public SMSBuilder setSource(String source) {
             this.naloMessage.source = source;
             return this;
         }
 
 
         @NonNull
-        public Builder setType(NaloSMS.Type type) {
+        public SMSBuilder setType(NaloSMS.Type type) {
             this.naloMessage.type = type.getValue();
             return this;
         }
 
         @NonNull
-        public Builder withDeliveryReport(boolean required) {
+        public SMSBuilder withDeliveryReport(boolean required) {
             this.naloMessage.dlr = required ? "1" : "0";
             return this;
         }
 
         public NaloSMS build() {
-            return new NaloSMS(naloMessage);
+            return new NaloSMS(this.naloMessage);
         }
 
     }
